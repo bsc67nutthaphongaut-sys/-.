@@ -1,451 +1,1715 @@
-import React, { useState, useEffect, useRef } from 'react';
-const calculateBMI = (weight, height) => {
-  if (!weight || !height) return 0;
-  const heightInMeters = height / 100;
-  const bmi = weight / (heightInMeters * heightInMeters);
-  return Number(bmi.toFixed(2));
-};
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แบบประเมินความเสี่ยงโรคเบาหวาน</title>
 
-const getBMITranslation = (bmi) => {
-  if (bmi === 0) return '-';
-  if (bmi < 18.5) return 'น้ำหนักน้อย / ผอม';
-  if (bmi <= 22.9) return 'ปกติ (สุขภาพดี)';
-  if (bmi <= 24.9) return 'ท้วม / โรคอ้วนระดับ 1';
-  if (bmi <= 29.9) return 'อ้วน / โรคอ้วนระดับ 2';
-  return 'อ้วนมาก / โรคอ้วนระดับ 3';
-};
-const getBMIScore = (bmi) => {
-  if (bmi === 0 || bmi < 23) return 0;
-  if (bmi <= 27.4) return 3; // 23.0 - 27.4
-  return 5; // >= 27.5
-};
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-const calculateRiskScore = (data) => {
+    body {
+      margin: 0;
+      font-family: Tahoma, Arial, sans-serif;
+      background: #f5f7f8;
+      color: #263b45;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      background: white;
+      border-bottom: 1px solid #d9e0e3;
+      text-align: center;
+      padding: 22px 15px;
+    }
+
+    .header h1 {
+      margin: 0;
+      color: #087f8c;
+      font-size: 28px;
+    }
+
+    .header p {
+      margin: 7px 0 0;
+      color: #75858d;
+      font-size: 14px;
+    }
+
+    /* ===== Container ===== */
+    .container {
+      width: 95%;
+      max-width: 1100px;
+      margin: 25px auto 50px;
+    }
+
+    /* ===== Description ===== */
+    .description {
+      background: white;
+      border: 1px solid #d5dfe3;
+      border-radius: 6px;
+      padding: 18px 22px;
+      margin-bottom: 20px;
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    .description strong {
+      color: #087f8c;
+    }
+
+    /* ===== Table ===== */
+    .table-box {
+      background: white;
+      border: 1px solid #cfdadd;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #08b7bd;
+      color: white;
+      padding: 16px;
+      border: 1px solid #079da3;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    th:first-child {
+      width: 45%;
+    }
+
+    th:last-child {
+      width: 55%;
+    }
+
+    td {
+      border: 1px solid #d6dfe2;
+      padding: 17px;
+      vertical-align: middle;
+      background: white;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfcfd;
+    }
+
+    td.question {
+      font-weight: bold;
+      color: #344d59;
+      line-height: 1.6;
+    }
+
+    td.question small {
+      display: block;
+      font-weight: normal;
+      color: #7b8b92;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* ===== Inputs ===== */
+    input[type="number"] {
+      width: 180px;
+      padding: 11px;
+      border: 1px solid #b9c9ce;
+      border-radius: 5px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input[type="number"]:focus {
+      border-color: #08a4ad;
+      box-shadow: 0 0 0 3px #dff7f8;
+    }
+
+    .unit {
+      margin-left: 8px;
+      color: #647780;
+    }
+
+    /* ===== Radio ===== */
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      border: 1px solid #d0dade;
+      border-radius: 5px;
+      cursor: pointer;
+      background: white;
+      transition: 0.15s;
+    }
+
+    .radio-label:hover {
+      background: #f1fbfb;
+      border-color: #08a4ad;
+    }
+
+    .radio-label.selected {
+      background: #e7f8f9;
+      border-color: #078e97;
+      color: #08727a;
+      font-weight: bold;
+    }
+
+    .radio-label input {
+      display: none;
+    }
+
+    .radio-circle {
+      width: 19px;
+      height: 19px;
+      border: 2px solid #89979c;
+      border-radius: 50%;
+      position: relative;
+      background: white;
+    }
+
+    .radio-label.selected .radio-circle {
+      border-color: #078e97;
+    }
+
+    .radio-label.selected .radio-circle::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      background: #078e97;
+      border-radius: 50%;
+      left: 3px;
+      top: 3px;
+    }
+
+    /* ===== BMI ===== */
+    .bmi-row td {
+      background: #f2fafb !important;
+    }
+
+    .bmi-value {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .bmi-number {
+      font-size: 26px;
+      font-weight: bold;
+      color: #087f8c;
+    }
+
+    .bmi-category {
+      background: white;
+      border: 1px solid #cbdde0;
+      padding: 6px 11px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .not-ready {
+      color: #929fa4;
+      font-style: italic;
+    }
+
+    /* ===== Error ===== */
+    .error {
+      color: #c62828;
+      font-size: 13px;
+      margin-top: 7px;
+      font-weight: bold;
+    }
+
+    .error-row td {
+      background: #fff7f7 !important;
+    }
+
+    /* ===== Buttons ===== */
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 25px;
+      background: white;
+    }
+
+    button {
+      border: none;
+      border-radius: 5px;
+      padding: 12px 25px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .calculate-btn {
+      background: #087f8c;
+      color: white;
+    }
+
+    .calculate-btn:hover {
+      background: #066d77;
+    }
+
+    .reset-btn {
+      background: white;
+      border: 1px solid #c6d2d6;
+      color: #526a74;
+    }
+
+    .reset-btn:hover {
+      background: #f5f7f8;
+    }
+
+    /* ===== Result ===== */
+    #result {
+      display: none;
+      margin-top: 25px;
+    }
+
+    .score-box {
+      border-radius: 7px;
+      padding: 25px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 80px;
+      text-align: center;
+      margin-bottom: 20px;
+      border: 2px solid;
+    }
+
+    .score-box .score-title {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 5px;
+    }
+
+    .score-number {
+      font-size: 55px;
+      font-weight: bold;
+    }
+
+    .risk-level {
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    .score-low {
+      background: #effaf2;
+      border-color: #9ed4ad;
+      color: #176d3b;
+    }
+
+    .score-medium {
+      background: #fff9e8;
+      border-color: #e4d08b;
+      color: #8a6900;
+    }
+
+    .score-high {
+      background: #fff3e5;
+      border-color: #e4b36f;
+      color: #a45d00;
+    }
+
+    .score-very-high {
+      background: #fff0f2;
+      border-color: #e6a6ae;
+      color: #b1283b;
+    }
+
+    /* ===== Result Grid ===== */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .result-card {
+      background: white;
+      border: 1px solid #d1dde0;
+      border-radius: 6px;
+      padding: 20px;
+    }
+
+    .result-card h2 {
+      margin-top: 0;
+      color: #087f8c;
+      font-size: 20px;
+      border-bottom: 1px solid #dce5e8;
+      padding-bottom: 10px;
+    }
+
+    /* ===== Interpretation Table ===== */
+    .interpretation {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .interpretation th {
+      background: #eef3f5;
+      color: #50636c;
+      border: 1px solid #d4dfe2;
+      padding: 10px;
+    }
+
+    .interpretation td {
+      text-align: center;
+      border: 1px solid #d4dfe2;
+      padding: 11px;
+    }
+
+    .interpretation .active-low {
+      background: #e5f7e9;
+      color: #176d3b;
+      font-weight: bold;
+    }
+
+    .interpretation .active-medium {
+      background: #fff5d5;
+      color: #866600;
+      font-weight: bold;
+    }
+
+    .interpretation .active-high {
+      background: #ffedda;
+      color: #a45d00;
+      font-weight: bold;
+    }
+
+    .interpretation .active-very-high {
+      background: #ffe6ea;
+      color: #b1283b;
+      font-weight: bold;
+    }
+
+    /* ===== BMI Summary ===== */
+    .bmi-summary {
+      margin-top: 15px;
+      background: #f4fafb;
+      border: 1px solid #d7e5e8;
+      border-radius: 5px;
+      padding: 14px;
+      line-height: 1.8;
+    }
+
+    .bmi-summary strong {
+      color: #087f8c;
+    }
+
+    /* ===== Recommendation ===== */
+    .recommendation {
+      padding: 18px;
+      border-radius: 6px;
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    .recommendation.low {
+      background: #effaf2;
+      border: 1px solid #c4e6cd;
+      color: #365c44;
+    }
+
+    .recommendation.medium {
+      background: #fff9e8;
+      border: 1px solid #ebdfae;
+      color: #6d5c28;
+    }
+
+    .recommendation.high {
+      background: #fff3e5;
+      border: 1px solid #efd0a8;
+      color: #765221;
+    }
+
+    .recommendation.very-high {
+      background: #fff0f2;
+      border: 1px solid #edc0c7;
+      color: #78343e;
+    }
+
+    footer {
+      text-align: center;
+      color: #84949b;
+      font-size: 12px;
+      padding: 25px 10px;
+      line-height: 1.7;
+    }
+
+    /* ===== Mobile ===== */
+    @media (max-width: 750px) {
+
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .container {
+        width: 98%;
+      }
+
+      .table-box {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 750px;
+      }
+
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .score-box {
+        gap: 30px;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+
+      .buttons button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ================= HEADER ================= -->
+  <div class="header">
+    <h1>แบบประเมินความเสี่ยงโรคเบาหวาน</h1>
+    <p>Diabetes Risk Assessment</p>
+  </div>
+
+  <div class="container">
+
+    <!-- ================= DESCRIPTION ================= -->
+    <div class="description">
+      <strong>คำชี้แจง:</strong>
+      กรุณากรอกข้อมูลและเลือกคำตอบที่ตรงกับความเป็นจริงมากที่สุด
+      เพื่อประเมินระดับความเสี่ยงต่อการเกิดโรคเบาหวาน
+      <br>
+      <span>
+        แบบประเมินนี้ใช้สำหรับการประเมินเบื้องต้น ไม่สามารถใช้แทนการวินิจฉัยของแพทย์ได้
+      </span>
+    </div>
+
+    <!-- ================= ASSESSMENT TABLE ================= -->
+    <div class="table-box">
+
+      <table id="assessmentTable">
+
+        <thead>
+          <tr>
+            <th>รายการประเมิน / คำถาม</th>
+            <th>ข้อมูล / ตัวเลือก</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <!-- AGE -->
+          <tr id="row-age">
+            <td class="question">
+              1. อายุ
+              <small>อายุเป็นปีบริบูรณ์</small>
+            </td>
+
+            <td>
+              <input
+                type="number"
+                id="age"
+                min="1"
+                max="120"
+                placeholder="เช่น 45"
+              >
+              <span class="unit">ปี</span>
+
+              <div class="error" id="ageError"></div>
+            </td>
+          </tr>
+
+
+          <!-- GENDER -->
+          <tr id="row-gender">
+            <td class="question">
+              2. เพศ
+            </td>
+
+            <td>
+
+              <div class="radio-group">
+
+                <label class="radio-label" id="maleLabel">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="male"
+                    onchange="selectGender('male')"
+                  >
+
+                  <span class="radio-circle"></span>
+                  ชาย
+                </label>
+
+
+                <label class="radio-label" id="femaleLabel">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="female"
+                    onchange="selectGender('female')"
+                  >
+
+                  <span class="radio-circle"></span>
+                  หญิง
+                </label>
+
+              </div>
+
+              <div class="error" id="genderError"></div>
+
+            </td>
+          </tr>
+
+
+          <!-- WEIGHT -->
+          <tr id="row-weight">
+
+            <td class="question">
+              3. น้ำหนัก
+            </td>
+
+            <td>
+
+              <input
+                type="number"
+                id="weight"
+                min="1"
+                step="0.1"
+                placeholder="เช่น 65"
+                oninput="calculateBMI()"
+              >
+
+              <span class="unit">กิโลกรัม</span>
+
+              <div class="error" id="weightError"></div>
+
+            </td>
+
+          </tr>
+
+
+          <!-- HEIGHT -->
+          <tr id="row-height">
+
+            <td class="question">
+              4. ส่วนสูง
+            </td>
+
+            <td>
+
+              <input
+                type="number"
+                id="height"
+                min="1"
+                step="0.1"
+                placeholder="เช่น 165"
+                oninput="calculateBMI()"
+              >
+
+              <span class="unit">เซนติเมตร</span>
+
+              <div class="error" id="heightError"></div>
+
+            </td>
+
+          </tr>
+
+
+          <!-- BMI -->
+          <tr class="bmi-row">
+
+            <td class="question">
+              ดัชนีมวลกาย (BMI)
+              <small>คำนวณอัตโนมัติจากน้ำหนักและส่วนสูง</small>
+            </td>
+
+            <td>
+
+              <div id="bmiResult" class="not-ready">
+                กรุณากรอกน้ำหนักและส่วนสูง
+              </div>
+
+            </td>
+
+          </tr>
+
+
+          <!-- WAIST -->
+          <tr id="row-waist">
+
+            <td class="question">
+
+              5. รอบเอว
+
+              <small>
+                วัดรอบเอวบริเวณระดับสะดือ
+              </small>
+
+            </td>
+
+            <td>
+
+              <input
+                type="number"
+                id="waist"
+                min="1"
+                step="0.1"
+                placeholder="เช่น 85"
+              >
+
+              <span class="unit">เซนติเมตร</span>
+
+              <div class="error" id="waistError"></div>
+
+            </td>
+
+          </tr>
+
+
+          <!-- HYPERTENSION -->
+          <tr id="row-hypertension">
+
+            <td class="question">
+
+              6. ท่านมีภาวะความดันโลหิตสูงหรือไม่
+
+              <small>
+                รวมถึงผู้ที่กำลังรับประทานยาลดความดันโลหิต
+              </small>
+
+            </td>
+
+            <td>
+
+              <div class="radio-group">
+
+                <label class="radio-label" id="hypertensionNoLabel">
+                  <input
+                    type="radio"
+                    name="hypertension"
+                    value="no"
+                    onchange="selectHypertension('no')"
+                  >
+
+                  <span class="radio-circle"></span>
+                  ไม่เป็น
+                </label>
+
+
+                <label class="radio-label" id="hypertensionYesLabel">
+                  <input
+                    type="radio"
+                    name="hypertension"
+                    value="yes"
+                    onchange="selectHypertension('yes')"
+                  >
+
+                  <span class="radio-circle"></span>
+                  เป็น
+                </label>
+
+              </div>
+
+              <div class="error" id="hypertensionError"></div>
+
+            </td>
+
+          </tr>
+
+
+          <!-- FAMILY HISTORY -->
+          <tr id="row-family">
+
+            <td class="question">
+
+              7. ท่านมีประวัติโรคเบาหวานในญาติสายตรงหรือไม่
+
+              <small>
+                ได้แก่ บิดา มารดา พี่ หรือน้อง
+              </small>
+
+            </td>
+
+            <td>
+
+              <div class="radio-group">
+
+                <label class="radio-label" id="familyNoLabel">
+                  <input
+                    type="radio"
+                    name="family"
+                    value="no"
+                    onchange="selectFamily('no')"
+                  >
+
+                  <span class="radio-circle"></span>
+                  ไม่มีประวัติ
+                </label>
+
+
+                <label class="radio-label" id="familyYesLabel">
+                  <input
+                    type="radio"
+                    name="family"
+                    value="yes"
+                    onchange="selectFamily('yes')"
+                  >
+
+                  <span class="radio-circle"></span>
+                  มีประวัติ
+                </label>
+
+              </div>
+
+              <div class="error" id="familyError"></div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+
+      <!-- BUTTONS -->
+      <div class="buttons">
+
+        <button
+          class="reset-btn"
+          onclick="resetForm()"
+        >
+          ล้างข้อมูล
+        </button>
+
+        <button
+          class="calculate-btn"
+          onclick="calculateRisk()"
+        >
+          คำนวณผลการประเมิน
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= RESULT ================= -->
+    <div id="result">
+
+      <div id="scoreBox" class="score-box">
+
+        <div>
+
+          <span class="score-title">
+            คะแนนรวมของท่าน
+          </span>
+
+          <span
+            class="score-number"
+            id="scoreNumber"
+          >
+            0
+          </span>
+
+          <span>
+            คะแนน
+          </span>
+
+        </div>
+
+
+        <div>
+
+          <span class="score-title">
+            ระดับความเสี่ยง
+          </span>
+
+          <span
+            class="risk-level"
+            id="riskLevel"
+          >
+            -
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="result-grid">
+
+        <!-- INTERPRETATION -->
+        <div class="result-card">
+
+          <h2>
+            การแปลผล
+          </h2>
+
+          <table class="interpretation">
+
+            <thead>
+
+              <tr>
+                <th>คะแนนความเสี่ยง</th>
+                <th>ระดับความเสี่ยง</th>
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              <tr id="risk-low">
+                <td>0–2 คะแนน</td>
+                <td>น้อย</td>
+              </tr>
+
+              <tr id="risk-medium">
+                <td>3–5 คะแนน</td>
+                <td>ปานกลาง</td>
+              </tr>
+
+              <tr id="risk-high">
+                <td>6–8 คะแนน</td>
+                <td>สูง</td>
+              </tr>
+
+              <tr id="risk-very-high">
+                <td>9–17 คะแนน</td>
+                <td>สูงมาก</td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+
+          <div class="bmi-summary">
+
+            <div>
+              ค่า BMI ของท่าน:
+              <strong id="resultBMI">-</strong>
+            </div>
+
+            <div>
+              การแปลผล BMI:
+              <strong id="resultBMICategory">-</strong>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- RECOMMENDATION -->
+        <div class="result-card">
+
+          <h2>
+            คำแนะนำ
+          </h2>
+
+          <div
+            id="recommendation"
+            class="recommendation"
+          >
+          </div>
+
+          <button
+            class="reset-btn"
+            style="width:100%; margin-top:18px;"
+            onclick="resetForm()"
+          >
+            ทำแบบประเมินใหม่อีกครั้ง
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <footer>
+
+      แบบประเมินความเสี่ยงโรคเบาหวาน
+      <br>
+      สำหรับการประเมินเบื้องต้นเท่านั้น
+
+    </footer>
+
+  </div>
+
+
+<script>
+
+/* =====================================================
+   ตัวแปร
+===================================================== */
+
+let gender = "";
+let hypertension = "";
+let familyHistory = "";
+
+
+/* =====================================================
+   เลือกเพศ
+===================================================== */
+
+function selectGender(value) {
+
+  gender = value;
+
+  document
+    .getElementById("maleLabel")
+    .classList.remove("selected");
+
+  document
+    .getElementById("femaleLabel")
+    .classList.remove("selected");
+
+  if (value === "male") {
+
+    document
+      .getElementById("maleLabel")
+      .classList.add("selected");
+
+  } else {
+
+    document
+      .getElementById("femaleLabel")
+      .classList.add("selected");
+
+  }
+
+  document.getElementById("genderError").innerHTML = "";
+
+}
+
+
+/* =====================================================
+   เลือกความดัน
+===================================================== */
+
+function selectHypertension(value) {
+
+  hypertension = value;
+
+  document
+    .getElementById("hypertensionNoLabel")
+    .classList.remove("selected");
+
+  document
+    .getElementById("hypertensionYesLabel")
+    .classList.remove("selected");
+
+  if (value === "yes") {
+
+    document
+      .getElementById("hypertensionYesLabel")
+      .classList.add("selected");
+
+  } else {
+
+    document
+      .getElementById("hypertensionNoLabel")
+      .classList.add("selected");
+
+  }
+
+  document.getElementById("hypertensionError").innerHTML = "";
+
+}
+
+
+/* =====================================================
+   เลือกประวัติครอบครัว
+===================================================== */
+
+function selectFamily(value) {
+
+  familyHistory = value;
+
+  document
+    .getElementById("familyNoLabel")
+    .classList.remove("selected");
+
+  document
+    .getElementById("familyYesLabel")
+    .classList.remove("selected");
+
+  if (value === "yes") {
+
+    document
+      .getElementById("familyYesLabel")
+      .classList.add("selected");
+
+  } else {
+
+    document
+      .getElementById("familyNoLabel")
+      .classList.add("selected");
+
+  }
+
+  document.getElementById("familyError").innerHTML = "";
+
+}
+
+
+/* =====================================================
+   คำนวณ BMI
+===================================================== */
+
+function calculateBMI() {
+
+  const weight =
+    Number(document.getElementById("weight").value);
+
+  const height =
+    Number(document.getElementById("height").value);
+
+  const result =
+    document.getElementById("bmiResult");
+
+
+  if (
+    !weight ||
+    !height ||
+    weight <= 0 ||
+    height <= 0
+  ) {
+
+    result.innerHTML =
+      "กรุณากรอกน้ำหนักและส่วนสูง";
+
+    result.className = "not-ready";
+
+    return 0;
+  }
+
+
+  const heightMeter =
+    height / 100;
+
+
+  const bmi =
+    weight /
+    (heightMeter * heightMeter);
+
+
+  const bmiFixed =
+    bmi.toFixed(2);
+
+
+  let category = "";
+
+
+  if (bmi < 18.5) {
+
+    category =
+      "น้ำหนักน้อย / ผอม";
+
+  } else if (bmi < 23) {
+
+    category =
+      "ปกติ (สุขภาพดี)";
+
+  } else if (bmi < 25) {
+
+    category =
+      "ท้วม / โรคอ้วนระดับ 1";
+
+  } else if (bmi < 30) {
+
+    category =
+      "อ้วน / โรคอ้วนระดับ 2";
+
+  } else {
+
+    category =
+      "อ้วนมาก / โรคอ้วนระดับ 3";
+
+  }
+
+
+  result.className = "bmi-value";
+
+  result.innerHTML = `
+    <span class="bmi-number">${bmiFixed}</span>
+    <span>kg/m²</span>
+    <span class="bmi-category">${category}</span>
+  `;
+
+
+  return bmi;
+
+}
+
+
+/* =====================================================
+   ตรวจสอบข้อมูล
+===================================================== */
+
+function validate() {
+
+  let valid = true;
+
+
+  // ล้างข้อความเดิม
+
+  document.querySelectorAll(".error")
+    .forEach(element => {
+      element.innerHTML = "";
+    });
+
+
+  document.querySelectorAll("tr")
+    .forEach(row => {
+      row.classList.remove("error-row");
+    });
+
+
+  const age =
+    Number(document.getElementById("age").value);
+
+  const weight =
+    Number(document.getElementById("weight").value);
+
+  const height =
+    Number(document.getElementById("height").value);
+
+  const waist =
+    Number(document.getElementById("waist").value);
+
+
+  if (!age || age <= 0) {
+
+    document.getElementById("ageError")
+      .innerHTML = "กรุณาระบุอายุ";
+
+    document.getElementById("row-age")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  if (!gender) {
+
+    document.getElementById("genderError")
+      .innerHTML = "กรุณาระบุเพศ";
+
+    document.getElementById("row-gender")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  if (!weight || weight <= 0) {
+
+    document.getElementById("weightError")
+      .innerHTML = "กรุณาระบุน้ำหนัก";
+
+    document.getElementById("row-weight")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  if (!height || height <= 0) {
+
+    document.getElementById("heightError")
+      .innerHTML = "กรุณาระบุส่วนสูง";
+
+    document.getElementById("row-height")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  if (!waist || waist <= 0) {
+
+    document.getElementById("waistError")
+      .innerHTML = "กรุณาระบุรอบเอว";
+
+    document.getElementById("row-waist")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  if (!hypertension) {
+
+    document.getElementById("hypertensionError")
+      .innerHTML = "กรุณาระบุข้อมูล";
+
+    document.getElementById("row-hypertension")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  if (!familyHistory) {
+
+    document.getElementById("familyError")
+      .innerHTML = "กรุณาระบุข้อมูล";
+
+    document.getElementById("row-family")
+      .classList.add("error-row");
+
+    valid = false;
+
+  }
+
+
+  return valid;
+
+}
+
+
+/* =====================================================
+   คำนวณคะแนนความเสี่ยง
+===================================================== */
+
+function calculateRisk() {
+
+  if (!validate()) {
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+    return;
+
+  }
+
+
+  const age =
+    Number(document.getElementById("age").value);
+
+  const weight =
+    Number(document.getElementById("weight").value);
+
+  const height =
+    Number(document.getElementById("height").value);
+
+  const waist =
+    Number(document.getElementById("waist").value);
+
+
+  const bmi =
+    calculateBMI();
+
+
   let score = 0;
-  
-  // 1. อายุ
-  const age = Number(data.age);
-  if (age >= 45 && age <= 49) score += 1;
-  else if (age >= 50) score += 2;
-  
-  // 2. เพศ
-  if (data.gender === 'male') score += 2; // หญิง = 0
-  
-  // 3. BMI 
-  const bmi = calculateBMI(data.weight, data.height);
-  score += getBMIScore(bmi);
-  
-  // 4. รอบเอว
-  const waist = Number(data.waist);
-  if (data.gender === 'male' && waist >= 90) score += 2;
-  if (data.gender === 'female' && waist >= 80) score += 2;
-  
-  // 5. ความดันโลหิต
-  if (data.hypertension === 'yes') score += 2;
-  
-  // 6. ประวัติครอบครัว (ญาติสายตรง)
-  if (data.familyHistory === 'yes') score += 4;
-  
-  return score;
-};
-
-const getRiskLevel = (score) => {
-  if (score <= 2) return { level: 'ต่ำ', color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-600' };
-  if (score <= 5) return { level: 'ปานกลาง', color: 'text-yellow-700', bg: 'bg-yellow-50', border: 'border-yellow-500' };
-  if (score <= 8) return { level: 'สูง', color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-500' };
-  return { level: 'สูงมาก', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-600' };
-};
 
 
-const RECOMMENDATIONS = {
-  'ต่ำ': 'ควรออกกำลังกายอย่างสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ที่เหมาะสม ตรวจวัดความดันโลหิตเป็นประจำ และควรประเมินความเสี่ยงซ้ำทุก 3 ปี',
-  'ปานกลาง': 'ควรออกกำลังกายอย่างสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ที่เหมาะสม ตรวจวัดความดันโลหิตเป็นประจำ และควรประเมินความเสี่ยงซ้ำทุก 1-3 ปี',
-  'สูง': 'ควรควบคุมอาหารและออกกำลังกายอย่างสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ ตรวจวัดความดันโลหิต ตรวจระดับน้ำตาลในเลือด และควรประเมินความเสี่ยงซ้ำทุก 1 ปี',
-  'สูงมาก': 'มีความเสี่ยงสูงมาก ควรปรึกษาแพทย์เพื่อตรวจระดับน้ำตาลในเลือด ควบคุมอาหารและออกกำลังกายอย่างเคร่งครัด และควรประเมินความเสี่ยงซ้ำทุก 1 ปี หรือตามแพทย์นัด'
-};
+  /* อายุ */
+
+  if (age >= 45 && age <= 49) {
+
+    score += 1;
+
+  } else if (age >= 50) {
+
+    score += 2;
+
+  }
 
 
-export default function App() {
-  const [formData, setFormData] = useState({
-    age: '',
-    gender: '',
-    weight: '',
-    height: '',
-    waist: '',
-    hypertension: '',
-    familyHistory: ''
+  /* เพศ */
+
+  if (gender === "male") {
+
+    score += 2;
+
+  }
+
+
+  /* BMI */
+
+  if (bmi < 23) {
+
+    score += 0;
+
+  } else if (bmi < 27.5) {
+
+    score += 3;
+
+  } else {
+
+    score += 5;
+
+  }
+
+
+  /* รอบเอว */
+
+  if (
+    gender === "male" &&
+    waist >= 90
+  ) {
+
+    score += 2;
+
+  }
+
+
+  if (
+    gender === "female" &&
+    waist >= 80
+  ) {
+
+    score += 2;
+
+  }
+
+
+  /* ความดัน */
+
+  if (hypertension === "yes") {
+
+    score += 2;
+
+  }
+
+
+  /* ประวัติครอบครัว */
+
+  if (familyHistory === "yes") {
+
+    score += 4;
+
+  }
+
+
+  showResult(score, bmi);
+
+}
+
+
+/* =====================================================
+   แสดงผล
+===================================================== */
+
+function showResult(score, bmi) {
+
+  let level = "";
+  let cssClass = "";
+  let recommendation = "";
+
+
+  /* ล้าง highlight เดิม */
+
+  document
+    .querySelectorAll(".interpretation tr")
+    .forEach(row => {
+
+      row.classList.remove(
+        "active-low",
+        "active-medium",
+        "active-high",
+        "active-very-high"
+      );
+
+    });
+
+
+  if (score <= 2) {
+
+    level = "น้อย";
+    cssClass = "score-low";
+
+    document
+      .getElementById("risk-low")
+      .classList.add("active-low");
+
+    recommendation =
+      "ออกกำลังกายสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ที่เหมาะสม ตรวจวัดความดันโลหิต ควรประเมินความเสี่ยงซ้ำทุก 3 ปี";
+
+
+  } else if (score <= 5) {
+
+    level = "ปานกลาง";
+    cssClass = "score-medium";
+
+    document
+      .getElementById("risk-medium")
+      .classList.add("active-medium");
+
+    recommendation =
+      "ออกกำลังกายสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ที่เหมาะสม ตรวจวัดความดันโลหิต ควรประเมินความเสี่ยงซ้ำทุก 3 ปี";
+
+
+  } else if (score <= 8) {
+
+    level = "สูง";
+    cssClass = "score-high";
+
+    document
+      .getElementById("risk-high")
+      .classList.add("active-high");
+
+    recommendation =
+      "ควบคุมอาหารและออกกำลังกายสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ที่เหมาะสม ตรวจวัดความดันโลหิต ตรวจระดับน้ำตาลในเลือด ควรประเมินความเสี่ยงซ้ำทุก 1–3 ปี";
+
+
+  } else {
+
+    level = "สูงมาก";
+    cssClass = "score-very-high";
+
+    document
+      .getElementById("risk-very-high")
+      .classList.add("active-very-high");
+
+    recommendation =
+      "ควบคุมอาหารและออกกำลังกายสม่ำเสมอ ควบคุมน้ำหนักตัวให้อยู่ในเกณฑ์ที่เหมาะสม ตรวจวัดความดันโลหิต ตรวจระดับน้ำตาลในเลือด ควรประเมินความเสี่ยงซ้ำทุก 1 ปี";
+
+  }
+
+
+  const scoreBox =
+    document.getElementById("scoreBox");
+
+
+  scoreBox.className =
+    "score-box " + cssClass;
+
+
+  document.getElementById("scoreNumber")
+    .innerHTML = score;
+
+
+  document.getElementById("riskLevel")
+    .innerHTML = level;
+
+
+  document.getElementById("resultBMI")
+    .innerHTML = bmi.toFixed(2) + " kg/m²";
+
+
+  document.getElementById("resultBMICategory")
+    .innerHTML = getBMICategory(bmi);
+
+
+  const recommendationBox =
+    document.getElementById("recommendation");
+
+
+  recommendationBox.className =
+    "recommendation " +
+    getRecommendationClass(score);
+
+
+  recommendationBox.innerHTML = `
+    <strong>ระดับความเสี่ยง: ${level}</strong>
+    <br>
+    ${recommendation}
+  `;
+
+
+  document.getElementById("result")
+    .style.display = "block";
+
+
+  document.getElementById("result")
+    .scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+}
+
+
+/* =====================================================
+   แปลผล BMI
+===================================================== */
+
+function getBMICategory(bmi) {
+
+  if (bmi < 18.5) {
+
+    return "น้ำหนักน้อย / ผอม";
+
+  }
+
+  if (bmi < 23) {
+
+    return "ปกติ (สุขภาพดี)";
+
+  }
+
+  if (bmi < 25) {
+
+    return "ท้วม / โรคอ้วนระดับ 1";
+
+  }
+
+  if (bmi < 30) {
+
+    return "อ้วน / โรคอ้วนระดับ 2";
+
+  }
+
+  return "อ้วนมาก / โรคอ้วนระดับ 3";
+
+}
+
+
+/* =====================================================
+   Class คำแนะนำ
+===================================================== */
+
+function getRecommendationClass(score) {
+
+  if (score <= 2) {
+
+    return "low";
+
+  }
+
+  if (score <= 5) {
+
+    return "medium";
+
+  }
+
+  if (score <= 8) {
+
+    return "high";
+
+  }
+
+  return "very-high";
+
+}
+
+
+/* =====================================================
+   ล้างข้อมูล
+===================================================== */
+
+function resetForm() {
+
+  document
+    .getElementById("age")
+    .value = "";
+
+  document
+    .getElementById("weight")
+    .value = "";
+
+  document
+    .getElementById("height")
+    .value = "";
+
+  document
+    .getElementById("waist")
+    .value = "";
+
+
+  document
+    .querySelectorAll("input[type='radio']")
+    .forEach(radio => {
+
+      radio.checked = false;
+
+    });
+
+
+  document
+    .querySelectorAll(".radio-label")
+    .forEach(label => {
+
+      label.classList.remove("selected");
+
+    });
+
+
+  document
+    .querySelectorAll(".error")
+    .forEach(error => {
+
+      error.innerHTML = "";
+
+    });
+
+
+  document
+    .querySelectorAll("tr")
+    .forEach(row => {
+
+      row.classList.remove("error-row");
+
+    });
+
+
+  gender = "";
+  hypertension = "";
+  familyHistory = "";
+
+
+  document.getElementById("bmiResult")
+    .innerHTML =
+      "กรุณากรอกน้ำหนักและส่วนสูง";
+
+  document.getElementById("bmiResult")
+    .className = "not-ready";
+
+
+  document.getElementById("result")
+    .style.display = "none";
+
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
   });
 
-  const [errors, setErrors] = useState({});
-  const [isCalculated, setIsCalculated] = useState(false);
-  const resultRef = useRef(null);
-
-  const currentBMI = calculateBMI(formData.weight, formData.height);
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-    // Re-hide results if form changes after calculation
-    if (isCalculated) {
-      setIsCalculated(false);
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.age || isNaN(formData.age) || Number(formData.age) <= 0) newErrors.age = 'กรุณาระบุอายุ';
-    if (!formData.gender) newErrors.gender = 'กรุณาระบุเพศ';
-    if (!formData.weight || isNaN(formData.weight) || Number(formData.weight) <= 0) newErrors.weight = 'กรุณาระบุน้ำหนัก';
-    if (!formData.height || isNaN(formData.height) || Number(formData.height) <= 0) newErrors.height = 'กรุณาระบุส่วนสูง';
-    if (!formData.waist || isNaN(formData.waist) || Number(formData.waist) <= 0) newErrors.waist = 'กรุณาระบุรอบเอว';
-    if (!formData.hypertension) newErrors.hypertension = 'กรุณาระบุข้อมูล';
-    if (!formData.familyHistory) newErrors.familyHistory = 'กรุณาระบุข้อมูล';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleCalculate = () => {
-    if (validateForm()) {
-      setIsCalculated(true);
-      setTimeout(() => {
-        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    } else {
-      setIsCalculated(false);
-      // alert or just let the red text show
-    }
-  };
-
-  const handleReset = () => {
-    setFormData({
-      age: '', gender: '', weight: '', height: '', waist: '', hypertension: '', familyHistory: ''
-    });
-    setErrors({});
-    setIsCalculated(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  return (
-    <div className="min-h-screen bg-[#f4f7f9] font-sans text-slate-800 pb-16">
-      
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 shadow-sm py-4">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-          <h1 className="text-xl md:text-2xl font-bold text-[#0f6497]">แบบประเมินความเสี่ยงโรคเบาหวาน (Diabetes Risk Assessment)</h1>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        
-        {/* Intro */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8">
-          <p className="text-slate-600 leading-relaxed text-sm md:text-base">
-            <strong>คำชี้แจง:</strong> กรุณากรอกข้อมูลและเลือกคำตอบที่ตรงกับความเป็นจริงมากที่สุด เพื่อให้ระบบคำนวณระดับความเสี่ยงในการเกิดโรคเบาหวานของคุณ 
-            (แบบประเมินนี้อ้างอิงจากศูนย์เบาหวานศิริราช สำหรับใช้ประเมินเบื้องต้นเท่านั้น ไม่สามารถแทนการวินิจฉัยโดยแพทย์)
-          </p>
-        </div>
-
-        {/* Assessment Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-300 overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="bg-[#1e40af] text-white">
-                  <th className="p-4 w-2/5 border-r border-[#1e3a8a] font-semibold text-sm md:text-base">รายการประเมิน / คำถาม</th>
-                  <th className="p-4 w-3/5 font-semibold text-sm md:text-base">ข้อมูล / ตัวเลือก</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                
-                {/* Q1: Age */}
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">1. อายุ (ปีบริบูรณ์)</td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" min="1" max="120"
-                        value={formData.age}
-                        onChange={(e) => handleInputChange('age', e.target.value)}
-                        className={`w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.age ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
-                        placeholder="เช่น 45"
-                      />
-                      <span className="text-slate-500">ปี</span>
-                    </div>
-                    {errors.age && <p className="text-red-500 text-sm mt-1">{errors.age}</p>}
-                  </td>
-                </tr>
-
-                {/* Q2: Gender */}
-                <tr className="hover:bg-slate-50 transition-colors bg-slate-50/50">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">2. เพศกำเนิด</td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-4">
-                      <label className={`flex items-center gap-2 px-4 py-2 border rounded-md cursor-pointer transition-all ${formData.gender === 'male' ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-white border-slate-300 hover:bg-slate-100'}`}>
-                        <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={() => handleInputChange('gender', 'male')} className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                        <span>ชาย</span>
-                      </label>
-                      <label className={`flex items-center gap-2 px-4 py-2 border rounded-md cursor-pointer transition-all ${formData.gender === 'female' ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-white border-slate-300 hover:bg-slate-100'}`}>
-                        <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={() => handleInputChange('gender', 'female')} className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                        <span>หญิง</span>
-                      </label>
-                    </div>
-                    {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
-                  </td>
-                </tr>
-
-                {/* Q3: Weight */}
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">3. น้ำหนัก</td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" min="1"
-                        value={formData.weight}
-                        onChange={(e) => handleInputChange('weight', e.target.value)}
-                        className={`w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.weight ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
-                        placeholder="เช่น 65"
-                      />
-                      <span className="text-slate-500">กิโลกรัม</span>
-                    </div>
-                    {errors.weight && <p className="text-red-500 text-sm mt-1">{errors.weight}</p>}
-                  </td>
-                </tr>
-
-                {/* Q4: Height */}
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">4. ส่วนสูง</td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" min="1"
-                        value={formData.height}
-                        onChange={(e) => handleInputChange('height', e.target.value)}
-                        className={`w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.height ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
-                        placeholder="เช่น 165"
-                      />
-                      <span className="text-slate-500">เซนติเมตร</span>
-                    </div>
-                    {errors.height && <p className="text-red-500 text-sm mt-1">{errors.height}</p>}
-                  </td>
-                </tr>
-
-                {/* Calculated BMI Display Row */}
-                <tr className="bg-[#f8fafc]">
-                  <td className="p-4 align-middle border-r border-slate-200 text-slate-600">
-                    <span className="inline-flex items-center gap-2">
-                      ดัชนีมวลกาย (BMI) 
-                      <span className="text-xs px-2 py-0.5 bg-slate-200 rounded text-slate-600">คำนวณอัตโนมัติ</span>
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    {currentBMI > 0 ? (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                        <span className="text-xl font-bold text-[#0f6497]">{currentBMI} <span className="text-sm font-normal text-slate-500">kg/m²</span></span>
-                        <span className="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-700">
-                          {getBMITranslation(currentBMI)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 text-sm italic">กรุณากรอกน้ำหนักและส่วนสูง</span>
-                    )}
-                  </td>
-                </tr>
-
-                {/* Q5: Waist */}
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">5. รอบเอว</td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number" min="1"
-                        value={formData.waist}
-                        onChange={(e) => handleInputChange('waist', e.target.value)}
-                        className={`w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.waist ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
-                        placeholder="เช่น 85"
-                      />
-                      <span className="text-slate-500">เซนติเมตร (วัดระดับสะดือ)</span>
-                    </div>
-                    {errors.waist && <p className="text-red-500 text-sm mt-1">{errors.waist}</p>}
-                  </td>
-                </tr>
-
-                {/* Q6: Hypertension */}
-                <tr className="hover:bg-slate-50 transition-colors bg-slate-50/50">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">
-                    6. ท่านมีภาวะความดันโลหิตสูงหรือไม่<br/>
-                    <span className="text-sm font-normal text-slate-500">(รวมถึงผู้ที่กำลังรับประทานยาลดความดันโลหิต)</span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex flex-col gap-3">
-                      <label className={`flex items-center gap-3 px-4 py-3 border rounded-md cursor-pointer transition-all ${formData.hypertension === 'no' ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-white border-slate-300 hover:bg-slate-100'}`}>
-                        <input type="radio" name="hypertension" value="no" checked={formData.hypertension === 'no'} onChange={() => handleInputChange('hypertension', 'no')} className="w-5 h-5 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                        <span>ไม่เป็น (หรือ ไม่ทราบ)</span>
-                      </label>
-                      <label className={`flex items-center gap-3 px-4 py-3 border rounded-md cursor-pointer transition-all ${formData.hypertension === 'yes' ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-white border-slate-300 hover:bg-slate-100'}`}>
-                        <input type="radio" name="hypertension" value="yes" checked={formData.hypertension === 'yes'} onChange={() => handleInputChange('hypertension', 'yes')} className="w-5 h-5 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                        <span>เป็น (มีภาวะความดันโลหิตสูง)</span>
-                      </label>
-                    </div>
-                    {errors.hypertension && <p className="text-red-500 text-sm mt-1">{errors.hypertension}</p>}
-                  </td>
-                </tr>
-
-                {/* Q7: Family History */}
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4 align-top border-r border-slate-200 font-medium">
-                    7. ท่านมีประวัติโรคเบาหวานในญาติสายตรงหรือไม่<br/>
-                    <span className="text-sm font-normal text-slate-500">(พ่อ แม่ พี่ หรือ น้อง ร่วมสายเลือด)</span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex flex-col gap-3">
-                      <label className={`flex items-center gap-3 px-4 py-3 border rounded-md cursor-pointer transition-all ${formData.familyHistory === 'no' ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-white border-slate-300 hover:bg-slate-100'}`}>
-                        <input type="radio" name="familyHistory" value="no" checked={formData.familyHistory === 'no'} onChange={() => handleInputChange('familyHistory', 'no')} className="w-5 h-5 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                        <span>ไม่มีประวัติ</span>
-                      </label>
-                      <label className={`flex items-center gap-3 px-4 py-3 border rounded-md cursor-pointer transition-all ${formData.familyHistory === 'yes' ? 'bg-blue-50 border-blue-500 text-blue-800' : 'bg-white border-slate-300 hover:bg-slate-100'}`}>
-                        <input type="radio" name="familyHistory" value="yes" checked={formData.familyHistory === 'yes'} onChange={() => handleInputChange('familyHistory', 'yes')} className="w-5 h-5 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                        <span>มีประวัติญาติสายตรงเป็นโรคเบาหวาน</span>
-                      </label>
-                    </div>
-                    {errors.familyHistory && <p className="text-red-500 text-sm mt-1">{errors.familyHistory}</p>}
-                  </td>
-                </tr>
-
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Action Button & Validation Alert */}
-        <div className="flex flex-col items-center mb-12">
-          {Object.keys(errors).length > 0 && (
-            <div className="w-full bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-center font-medium">
-              กรุณาตอบแบบประเมินให้ครบถ้วนในข้อที่ไฮไลต์สีแดง
-            </div>
-          )}
-          
-          <button 
-            onClick={handleCalculate}
-            className="px-10 py-3 bg-[#1e40af] hover:bg-[#1e3a8a] text-white text-lg font-semibold rounded-md shadow-md transition-all active:scale-95"
-          >
-            คำนวณผลการประเมิน
-          </button>
-        </div>
-
-        {/* Result Section */}
-        {isCalculated && (
-          <div ref={resultRef} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-white border border-slate-300 rounded-lg shadow-md overflow-hidden mb-8">
-              
-              <div className="bg-slate-50 border-b border-slate-200 p-4 text-center">
-                <h2 className="text-xl font-bold text-slate-800">สรุปผลการประเมินความเสี่ยงโรคเบาหวาน</h2>
-              </div>
-              
-              <div className="p-6 md:p-8">
-                {(() => {
-                  const score = calculateRiskScore(formData);
-                  const riskData = getRiskLevel(score);
-                  return (
-                    <>
-                      {/* Score and Risk Box */}
-                      <div className={`flex flex-col md:flex-row items-center justify-center gap-6 p-6 rounded-lg border-2 mb-8 ${riskData.border} ${riskData.bg}`}>
-                        <div className="text-center md:border-r-2 md:border-black/10 md:pr-8">
-                          <span className="block text-slate-600 font-medium mb-1">คะแนนรวมของท่าน</span>
-                          <span className={`text-6xl font-black ${riskData.color}`}>{score}</span>
-                          <span className="text-slate-500 ml-2">คะแนน</span>
-                        </div>
-                        <div className="text-center md:pl-4">
-                          <span className="block text-slate-600 font-medium mb-1">ระดับความเสี่ยง</span>
-                          <span className={`text-3xl font-bold ${riskData.color}`}>{riskData.level}</span>
-                        </div>
-                      </div>
-
-                      <hr className="my-8 border-slate-200" />
-
-                      {/* Info Summary & Recommendations */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        
-                        {/* Left Col: Info */}
-                        <div>
-                          <h3 className="font-bold text-lg text-[#0f6497] mb-4 border-l-4 border-[#0f6497] pl-3">การแปลผลความเสี่ยง</h3>
-                          <table className="w-full text-sm border-collapse border border-slate-200 mb-6">
-                            <thead className="bg-slate-100 text-slate-700">
-                              <tr>
-                                <th className="border border-slate-200 p-2 text-center w-1/2">คะแนนที่ได้</th>
-                                <th className="border border-slate-200 p-2 text-center w-1/2">ระดับความเสี่ยง</th>
-                              </tr>
-                            </thead>
-                            <tbody className="text-center">
-                              <tr className={score <= 2 ? "bg-green-100 font-bold" : ""}>
-                                <td className="border border-slate-200 p-2">น้อยกว่า หรือ เท่ากับ 2</td>
-                                <td className="border border-slate-200 p-2 text-green-700">ต่ำ</td>
-                              </tr>
-                              <tr className={(score >= 3 && score <= 5) ? "bg-yellow-100 font-bold" : ""}>
-                                <td className="border border-slate-200 p-2">3 - 5</td>
-                                <td className="border border-slate-200 p-2 text-yellow-700">ปานกลาง</td>
-                              </tr>
-                              <tr className={(score >= 6 && score <= 8) ? "bg-orange-100 font-bold" : ""}>
-                                <td className="border border-slate-200 p-2">6 - 8</td>
-                                <td className="border border-slate-200 p-2 text-orange-700">สูง</td>
-                              </tr>
-                              <tr className={score >= 9 ? "bg-red-100 font-bold" : ""}>
-                                <td className="border border-slate-200 p-2">9 คะแนนขึ้นไป</td>
-                                <td className="border border-slate-200 p-2 text-red-700">สูงมาก</td>
-                              </tr>
-                            </tbody>
-                          </table>
-
-                          <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
-                            <div className="mb-2">
-                              <span className="text-slate-600 font-medium">ค่า BMI ของท่าน: </span>
-                              <span className="font-bold">{currentBMI} kg/m²</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-600 font-medium">การแปลค่า BMI: </span>
-                              <span className="font-bold text-[#0f6497]">{getBMITranslation(currentBMI)}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Right Col: Recommendation */}
-                        <div>
-                          <h3 className="font-bold text-lg text-[#0f6497] mb-4 border-l-4 border-[#0f6497] pl-3">คำแนะนำสำหรับระดับความเสี่ยง "{riskData.level}"</h3>
-                          <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 leading-relaxed text-sm md:text-base">
-                            {RECOMMENDATIONS[riskData.level]}
-                          </div>
-                          
-                          <div className="mt-8 text-center md:text-right">
-                            <button 
-                              onClick={handleReset}
-                              className="px-6 py-2 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 rounded-md font-medium transition-colors"
-                            >
-                              ทำแบบประเมินใหม่อีกครั้ง
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="text-center py-6 text-slate-500 text-sm border-t border-slate-200 bg-white mt-auto">
-        อ้างอิงแบบประเมิน: ศูนย์เบาหวานศิริราช คณะแพทยศาสตร์ศิริราชพยาบาล มหาวิทยาลัยมหิดล
-      </footer>
-    </div>
-  );
 }
+
+</script>
+
+</body>
+</html>
